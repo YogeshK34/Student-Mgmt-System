@@ -1,11 +1,5 @@
 import { useEffect, useState } from "react";
-
-type Student = {
-    id: number;
-    prn_no: number;
-    name: string;
-    program: string;
-};
+import type { Student } from "../../types";
 
 export function Students() {
     const [students, setStudents] = useState<Student[]>([]);
