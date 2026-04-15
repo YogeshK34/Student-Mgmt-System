@@ -1,0 +1,8 @@
+
+i# Ignore all node_modules everywhere
+node_modules/
+
+# Optional but recommended
+.env
+dist/
+build/
