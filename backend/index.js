@@ -1,8 +1,13 @@
+
 const express = require("express");
 const cors = require("cors");
-const bcrypt = require("bcrypt");
+const dotenv = require("dotenv");
+dotenv.config();
 const { students } = require("./students");
-// const { students } = require("./students");
+const jwt = require("jsonwebtoken");
+const { authMiddleware } = require("./middleware");
+
+const SECRET = process.env.JWT_SECRET || "Yogesh";
 
 const app = express();
 const port = 3000;
@@ -15,38 +20,40 @@ app.get("/", (req, res) => {
     res.status(200).json({ students: students })
 });
 
-// POST route  
-app.post("/register", async (req, res) => {
+app.post("/login", (req, res) => {
     try {
-        const data = await req.body;
+        const { username, password } = req.body;
 
-        if (!data.name || !data.prn_no || !data.program) {
-            return res.status(403).json({ error: "Input fields do not match the expected pattern" })
+        if (!username || !password) {
+            return res.status(401).json({ error: "Username & Password not provided!" })
         };
 
-        // getting the current id 
-        const newId = students.at.length > 0 ? Math.max(...students.map(s => s.id)) + 1 : 1;
+        // find the user in the DB
+        const student = students.find(s => s.username === username && s.password === password);
 
-        // create a new js object with the input fields and id 
-        const newStudent = {
-            id: newId,
-            name: data.name,
-            prn_no: data.prn_no,
-            program: data.program
+        if (!student) {
+            return res.status(401).json({ error: "Invalid credentails" });
         };
 
-        // finally push 
-        students.push(newStudent);
+        // sign the token 
+        const token = jwt.sign(
+            { userId: student.id, username: student.username },
+            SECRET,
+            { expiresIn: "1h" }
+        );
 
-        return res.status(200).json({
-            message: "Student registered successfully!",
-            student: data
-        });
+        return res.status(200).json({ token })
 
     } catch (error) {
         console.error(error);
-        return res.json({ error: "Internal Server Error" }, { status: 500 })
-    }
+        return res.status(500).json({ error: "Internal Server Error" })
+    };
+});
+
+// GET protected route 
+app.get("/profile", authMiddleware, (req, res) => {
+    const student = students.find(s => s.id === req.user.userId);
+    return res.status(200).json({ student: req.user }) // can also send student
 });
 
 app.listen(port, () => {
